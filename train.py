@@ -11,7 +11,7 @@ from tensorflow.keras.models import Model
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import ConvLSTM2D, Conv2D, InputLayer
 #from Extract_Features_Label import extract_features_labels
-from Scaler import Scaler
+#from Scaler import Scaler
 #from Extract_Data_Array import extract_data_array
 import cv2
 import numpy as np
@@ -55,7 +55,7 @@ def extract_data_array(dataset,
     
     return arr
 
-def extract_features_labels(netdcf_features, 
+def extract_features_labels(netcdf_features, 
                             netcdf_labels,
                             feature_vars,
                             label_vars,
@@ -80,7 +80,7 @@ def extract_features_labels(netdcf_features,
     """
     
     # open the features (flows) and labels (tendencies) as xarray DataSets
-    ds_features = xr.open_mfdataset(paths=netdcf_features)
+    ds_features = xr.open_mfdataset(paths=netcdf_features)
     ds_labels = xr.open_mfdataset(paths=netcdf_labels)
     
     # confirm that we have datasets that match on the time, lev, lat, and lon dimension/coordinate
@@ -145,6 +145,13 @@ class Scaler(TransformerMixin):
 def customLoss1(o,p):
     ioa = 1 -(k.sum((o-p)**2))/(k.sum((k.abs(p-k.mean(o))+k.abs(o-k.mean(o)))**2))
     return (-ioa)
+
+def IOA(y_true, y_pred):
+    #x = K.sum(K.square(y_true-y_pred))
+    #y = K.sum(K.square(K.abs(y_pred-K.mean(y_true))+K.abs(y_true-K.mean(y_true))))
+    ioa = 1 -(k.sum((y_true-y_pred)**2))/(k.sum((k.abs(y_pred-k.mean(y_true))+k.abs(y_true-k.mean(y_true)))**2))
+    #ioa = 1 - (x/y)
+    return ioa
 #%% Reading the data and necessary preprocessing
 features_dir = "/project/ychoi/dsingh/biasCorrectionISMR/Data/data_preparation/py_test/input/"
 labels_dir = "/project/ychoi/dsingh/biasCorrectionISMR/Data/data_preparation/py_test/output/"
@@ -237,13 +244,13 @@ decoded_image =  tf.keras.layers.Conv2D(1, (3, 3), padding='same', kernel_initia
 
 auto_encoder = tf.keras.models.Model(inputs=(input_layer), outputs=decoded_image)
 
-auto_encoder.compile(optimizer='Adam', loss='mse')
+auto_encoder.compile(optimizer='Adam', loss='mse',metrics = [IOA])
 
 auto_encoder.summary()
 #%% Training model
 
 trainX, valX, trainY, valY = train_test_split(reshaped_train_x, reshaped_train_y, 
-                                                        test_size=0.3, 
+                                                        test_size=0.2, 
                                                         random_state=0,shuffle=True)
 datagen = ImageDataGenerator() 
 
@@ -297,9 +304,40 @@ csv_logger = CSVLogger(save_dir+"BC_pr_model_history.csv",append=True)
 
 ### Training PCNN Model ###
 history = auto_encoder.fit_generator(train,
+    steps_per_epoch=len(reshaped_train_x)//8,  
+    validation_data=val,
+    validation_steps=len(reshaped_train_y)//8, 
+    epochs=30,
+    verbose=1, shuffle=True,
+    #workers=1, 
+    use_multiprocessing=True,
+    callbacks=[checkpoint, csv_logger])
+
+history = auto_encoder.fit_generator(train,
     steps_per_epoch=len(reshaped_train_x)//64,  
     validation_data=val,
     validation_steps=len(reshaped_train_y)//64, 
+    epochs=10,
+    verbose=1, shuffle=True,
+    #workers=1, 
+    use_multiprocessing=True,
+    callbacks=[checkpoint, csv_logger])
+
+history = auto_encoder.fit_generator(train,
+    steps_per_epoch=len(reshaped_train_x)//32,  
+    validation_data=val,
+    validation_steps=len(reshaped_train_y)//32, 
+    epochs=10,
+    verbose=1, shuffle=True,
+    #workers=1, 
+    use_multiprocessing=True,
+    callbacks=[checkpoint, csv_logger])
+
+
+history = auto_encoder.fit_generator(train,
+    steps_per_epoch=len(reshaped_train_x)//8,  
+    validation_data=val,
+    validation_steps=len(reshaped_train_y)//8, 
     epochs=15,
     verbose=1, shuffle=True,
     #workers=1, 
@@ -342,7 +380,7 @@ def conv_layer_transpose(x, filters: int, kernel_size: int = 4, strides: int = 2
     return y
 def create_res_net():
     
-    inputs = InputLayer((128, 128, 15))
+    inputs = tf.keras.layers.Input((128, 128, 15))
     
     t = layers.BatchNormalization()(inputs)
     t = conv_layer(t, kernel_size=9,
@@ -357,12 +395,17 @@ def create_res_net():
     t = conv_layer(t, kernel_size=4,
            strides=2,
            filters=256)
+    t = conv_layer(t, kernel_size=4,
+           strides=2,
+           filters=512)
     
     for i in range(0,3):
         t = residual_block(t, kernel_size=3,
                strides=1,
-               filters=256)
-    
+               filters=512)
+    t = conv_layer_transpose(t, kernel_size=4,
+           strides=2,
+           filters=512)
     t = conv_layer_transpose(t, kernel_size=4,
            strides=2,
            filters=256)
