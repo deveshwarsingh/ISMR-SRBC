@@ -343,7 +343,7 @@ history = auto_encoder.fit_generator(train,
     #workers=1, 
     use_multiprocessing=True,
     callbacks=[checkpoint, csv_logger])
-#%% GAN Test
+#%% ResNet Test
 def relu_batch_norm(inputs):
     relu = layers.ReLU()(inputs)
     batch_norm = layers.BatchNormalization()(relu)
@@ -418,17 +418,116 @@ def create_res_net():
     t = conv_layer_transpose(t, kernel_size=4,
            strides=2,
            filters=64)
+    t = conv_layer_transpose(t, kernel_size=4,
+           strides=2,
+           filters=64)
     
-    t = layers.Conv2DTranspose(kernel_size=9,
+    t = layers.Conv2DTranspose(kernel_size=4,
            strides= 1,
-           filters=3,
+           filters=1,
            padding="same")(t)
     t = layers.Activation(activation='tanh')(t)
     
-    output = layers.experimental.preprocessing.Rescaling(255)(t)
+    output = (t)
         
     model = Model(inputs, output)
 
     return model
 model = create_res_net()
+model.compile(optimizer='Adam', loss='mse',metrics = [IOA])
 model.summary()
+#%%
+trainX, valX, trainY, valY = train_test_split(reshaped_train_x, reshaped_train_y, 
+                                                        test_size=0.2, 
+                                                        random_state=0,shuffle=True)
+datagen = ImageDataGenerator() 
+
+train = datagen.flow(
+    trainX,
+    trainY,
+    batch_size=4, 
+    shuffle=True,
+    sample_weight=None,
+    seed=None,
+    save_to_dir=None,
+    save_prefix="",
+    save_format="png",
+    subset=None,
+)
+
+val = datagen.flow(
+    valX,
+    valY,
+    batch_size=4, 
+    shuffle=True,
+    sample_weight=None,
+    seed=None,
+    save_to_dir=None,
+    save_prefix="",
+    save_format="png",
+    subset=None,
+)
+
+key = locals().keys()
+
+save_dir = "/project/ychoi/dsingh/ARMAN_R/"
+checkpoint = ModelCheckpoint(save_dir+"BC_pr_resnet_test.h5", monitor='val_loss', mode='min', verbose=1, 
+                             save_best_only=True, save_weights_only=False) 
+
+
+### Training time logger 
+
+class TimeLogger(keras.callbacks.Callback):
+    def on_train_begin(self, logs={}):
+        self.times = []
+    def on_epoch_begin(self, epoch, logs={}):
+        self.epoch_time_start = time.time()
+    def on_epoch_end(self, epoch, logs={}):
+        self.times.append(time.time() - self.epoch_time_start)
+        
+time_callback = TimeLogger()
+
+# Create CSV file with epoch number and training and validation scores        
+csv_logger = CSVLogger(save_dir+"BC_pr_resnet_model_history.csv",append=True)
+
+### Training PCNN Model ###
+history = model.fit_generator(train,
+    steps_per_epoch=len(reshaped_train_x)//8,  
+    validation_data=val,
+    validation_steps=len(reshaped_train_y)//8, 
+    epochs=30,
+    verbose=1, shuffle=True,
+    #workers=1, 
+    use_multiprocessing=True,
+    callbacks=[checkpoint, csv_logger])
+
+history = auto_encoder.fit_generator(train,
+    steps_per_epoch=len(reshaped_train_x)//64,  
+    validation_data=val,
+    validation_steps=len(reshaped_train_y)//64, 
+    epochs=10,
+    verbose=1, shuffle=True,
+    #workers=1, 
+    use_multiprocessing=True,
+    callbacks=[checkpoint, csv_logger])
+
+history = auto_encoder.fit_generator(train,
+    steps_per_epoch=len(reshaped_train_x)//32,  
+    validation_data=val,
+    validation_steps=len(reshaped_train_y)//32, 
+    epochs=10,
+    verbose=1, shuffle=True,
+    #workers=1, 
+    use_multiprocessing=True,
+    callbacks=[checkpoint, csv_logger])
+
+
+history = auto_encoder.fit_generator(train,
+    steps_per_epoch=len(reshaped_train_x)//8,  
+    validation_data=val,
+    validation_steps=len(reshaped_train_y)//8, 
+    epochs=15,
+    verbose=1, shuffle=True,
+    #workers=1, 
+    use_multiprocessing=True,
+    callbacks=[checkpoint, csv_logger])
