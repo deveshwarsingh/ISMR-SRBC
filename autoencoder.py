@@ -382,7 +382,7 @@ val = datagen.flow(
 
 key = locals().keys()
 
-save_dir = "/project/ychoi/dsingh/ARMAN_R/"
+save_dir = "/path/"
 checkpoint = ModelCheckpoint(save_dir+"BC_pr_test.h5", monitor='val_loss', mode='min', verbose=1, 
                              save_best_only=True, save_weights_only=False) 
 
