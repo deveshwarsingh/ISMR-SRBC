@@ -270,7 +270,7 @@ def build_vgg():
     return loss_model
 vgg=build_vgg()
 #%% Loss
-def loss(y_true, y_pred):
+def perceptual_style_loss(y_true, y_pred):
     vgg_out = vgg(y_pred)
     vgg_gt = vgg(y_true)
     # Compute loss components
@@ -280,7 +280,7 @@ def loss(y_true, y_pred):
     # Return loss function
     return l3 + l4
 
-    return loss
+    return perceptual_style_loss
 
 
 def loss_perceptual(vgg_out, vgg_gt): 
