@@ -263,7 +263,7 @@ def build_vgg():
     vgg.outputs = [vgg.layers[i].output for i in vgg_layers]        
     
     # Create model and compile
-    loss_model = Model(inputs=img, outputs=vgg(processed))#.outputs)
+    loss_model = Model(inputs=img, outputs=vgg[processed].outputs)
     loss_model.trainable = False
     loss_model.compile(loss='mse', optimizer='adam')
 
