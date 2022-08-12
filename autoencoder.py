@@ -339,7 +339,7 @@ def auto_encoder():
 
     auto_encoder = Model(inputs=(input_layer), outputs=decoded_image)
 
-    auto_encoder.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=0.001), loss=loss,metrics = [IOA,PSNR,"mse"])
+    auto_encoder.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=0.001), loss=perceptual_style_loss,metrics = [IOA,PSNR,"mse"])
     return auto_encoder
 
 auto_encoder = auto_encoder()
