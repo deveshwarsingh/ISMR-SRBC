@@ -8,3 +8,10 @@ This repository is a tool for SRBC of climatic simulations obtained from CORDEX-
 
 Therefore, in order to address these challenges, this repo, uses Deep-learning algorithms such as AutoEncoder-Decoder (ACDC) and Residual Neural Networks (ResNet). Later on, several other algorithms for SRBC are also planned to be added. This repo uses python libraries such as Tensorflow, Keras, Sklearn, Xarray, Numpy and Pandas. 
 
+These algorithms are trained using the Renalysis Datasets such as ERA5 and Indian Monsoon Dataset Assimilation and Analysis (IMDAA) along with CORDEX-SA climatic simulation of precipitation over the domain of South-Asia i.e. CORDEX-SA. Additionally, for bias-correction and reducing topographical information is also provided to the model in the form of Digital Elevation Model (DEM) obtained from Shuttle Radar Topography Mission (SRTM). 
+
+
+The DL-ased SRBC algorithms are trained in two phases:
+1. Pre-training: 
+2. Transfer-learning
+
