@@ -3,7 +3,8 @@
 """
 Created on Fri Oct 21 16:15:51 2022
 
-@author: dsingh24
+@author: Deveshwar Singh
+
 """
 from sklearn.base import TransformerMixin
 from sklearn.preprocessing import MinMaxScaler
